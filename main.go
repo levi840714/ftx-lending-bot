@@ -24,15 +24,14 @@ const (
 )
 
 var (
-	SUB_ACCOUNT   = os.Getenv("SUB_ACCOUNT")
-	API_KEY       = os.Getenv("API_KEY")
-	SECRET_KEY    = os.Getenv("SECRET_KEY")
-	Currency      = os.Getenv("currency")
-	UPDATE_MINUTE = os.Getenv("UPDATE_MINUTE")
+	SUB_ACCOUNT = os.Getenv("SUB_ACCOUNT")
+	API_KEY     = os.Getenv("API_KEY")
+	SECRET_KEY  = os.Getenv("SECRET_KEY")
+	Currency    = os.Getenv("CURRENCY")
 )
 
 func init() {
-	if SUB_ACCOUNT == "" || API_KEY == "" || SECRET_KEY == "" || Currency == "" || UPDATE_MINUTE == "" {
+	if SUB_ACCOUNT == "" || API_KEY == "" || SECRET_KEY == "" || Currency == "" {
 		log.Fatal("plz set .env file")
 	}
 	log.Printf("Lending Currency is: %s", Currency)

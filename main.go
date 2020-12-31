@@ -8,11 +8,14 @@ import (
 	"encoding/json"
 	"fmt"
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/robfig/cron/v3"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 )
 
@@ -36,13 +39,19 @@ func init() {
 }
 
 func main() {
-	minute, _ := strconv.Atoi(UPDATE_MINUTE)
-	for {
+	crontab := cron.New()
+	crontab.AddFunc("58,59 * * * *", func() {
 		balance := GetBalance()
 		apy := GetLendingRates()
 		SubmitLending(apy, balance)
-		time.Sleep(time.Duration(minute) * time.Minute)
-	}
+	})
+	crontab.Start()
+
+	// graceful shutdown
+	shutdown := make(chan os.Signal)
+	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+	<-shutdown
+	log.Printf("lending bot is stopping on %s\n", time.Now().String())
 }
 
 type Balance struct {

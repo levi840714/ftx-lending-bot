@@ -1,4 +1,4 @@
-module FtxAPI
+module FtxLendingBot
 
 go 1.14
 

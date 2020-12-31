@@ -95,14 +95,16 @@ func GetBalance() (totalBalance float64) {
 	client := http.Client{}
 	path := "/wallet/balances"
 	req := FtxClient(path, "GET", nil)
-	defer req.Body.Close()
 	res, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Get account balance failed,err: %s", err)
+		return
 	}
+	defer res.Body.Close()
 	r, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Get account balance failed,err: %s", err)
+		return
 	}
 
 	//fmt.Println(string(r))
@@ -120,14 +122,16 @@ func GetLendingRates() (currencyRate float64) {
 	client := http.Client{}
 	path := "/spot_margin/lending_rates"
 	req := FtxClient(path, "GET", nil)
-	defer req.Body.Close()
 	res, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Get Lending Rates failed,err: %s", err)
+		return
 	}
+	defer res.Body.Close()
 	r, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Get Lending Rates failed,err: %s", err)
+		return
 	}
 
 	var lend LendingRate
@@ -145,24 +149,27 @@ func SubmitLending(apy, balance float64) {
 	client := http.Client{}
 	path := "/spot_margin/offers"
 	req := FtxClient(path, "POST", body)
-	defer req.Body.Close()
 	res, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Submit lending offer failed,err: %s", err)
+		return
 	}
+	defer res.Body.Close()
 	r, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Submit lending offer failed,err: %s", err)
+		return
 	}
 	//fmt.Printf("%+v", string(r))
 
 	var lendResp LendingResponse
 	json.Unmarshal(r, &lendResp)
 	if lendResp.Success == false {
-		log.Fatalf("submit lending failed,error: %s", lendResp.Error)
+		log.Printf("Submit lending offer failed,error: %s", lendResp.Error)
+		return
 	}
 
-	log.Printf("submit lending success, Currency: %s, Size: %f, APY: %f%%", Currency, balance, apy*24*365*100)
+	log.Printf("Submit lending offer success, Currency: %s, Size: %f, APY: %f%%", Currency, balance, apy*24*365*100)
 }
 
 func milliTimestamp() string {

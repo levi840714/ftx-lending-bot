@@ -9,6 +9,7 @@ import (
 	"fmt"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/robfig/cron/v3"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -31,6 +32,7 @@ var (
 )
 
 func init() {
+	SetLogFile()
 	if SUB_ACCOUNT == "" || API_KEY == "" || SECRET_KEY == "" || Currency == "" {
 		log.Fatal("plz set .env file")
 	}
@@ -94,17 +96,6 @@ type LendingResponse struct {
 	Error   string `json:"error"`
 }
 
-type LendingHistory struct {
-	Success bool `json:"success"`
-	Result  []struct {
-		Coin     string    `json:"coin"`
-		Proceeds float64   `json:"proceeds"`
-		Rate     float64   `json:"rate"`
-		Size     float64   `json:"size"`
-		Time     time.Time `json:"time"`
-	} `json:"result"`
-}
-
 func FtxClient(path string, method string, body []byte) *http.Request {
 	params := fmt.Sprintf("%s%s/api%s%s", milliTimestamp(), method, path, string(body))
 	h := hmac.New(sha256.New, []byte(SECRET_KEY))
@@ -138,7 +129,6 @@ func GetBalance() (totalBalance float64) {
 		return
 	}
 
-	//fmt.Println(string(r))
 	var balance Balance
 	json.Unmarshal(r, &balance)
 	for _, coin := range balance.Result {
@@ -190,7 +180,6 @@ func SubmitLending(apy, balance float64) string {
 	if err != nil {
 		return fmt.Sprintf("Submit lending offer failed,err: %s", err)
 	}
-	//fmt.Printf("%+v", string(r))
 
 	var lendResp LendingResponse
 	json.Unmarshal(r, &lendResp)
@@ -203,4 +192,13 @@ func SubmitLending(apy, balance float64) string {
 
 func milliTimestamp() string {
 	return strconv.FormatInt(time.Now().UTC().Unix()*1000, 10)
+}
+
+func SetLogFile() {
+	f, err := os.OpenFile("lending.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("file open error : %v", err)
+	}
+	mw := io.MultiWriter(os.Stdout, f)
+	log.SetOutput(mw)
 }

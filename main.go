@@ -39,10 +39,22 @@ func init() {
 
 func main() {
 	crontab := cron.New()
-	crontab.AddFunc("58,59 * * * *", func() {
-		balance := GetBalance()
-		apy := GetLendingRates()
-		SubmitLending(apy, balance)
+	crontab.AddFunc("59 * * * *", func() {
+		var result string
+		timer := time.NewTimer(1 * time.Minute)
+	loop:
+		for {
+			select {
+			case <-timer.C:
+				break loop
+			default:
+				balance := GetBalance()
+				apy := GetLendingRates()
+				result = SubmitLending(apy, balance)
+				time.Sleep(5 * time.Second)
+			}
+		}
+		log.Println(result)
 	})
 	crontab.Start()
 
@@ -80,6 +92,17 @@ type LendingOffer struct {
 type LendingResponse struct {
 	Success bool   `json:"success"`
 	Error   string `json:"error"`
+}
+
+type LendingHistory struct {
+	Success bool `json:"success"`
+	Result  []struct {
+		Coin     string    `json:"coin"`
+		Proceeds float64   `json:"proceeds"`
+		Rate     float64   `json:"rate"`
+		Size     float64   `json:"size"`
+		Time     time.Time `json:"time"`
+	} `json:"result"`
 }
 
 func FtxClient(path string, method string, body []byte) *http.Request {
@@ -146,38 +169,36 @@ func GetLendingRates() (currencyRate float64) {
 	json.Unmarshal(r, &lend)
 	for _, coin := range lend.Result {
 		if coin.Coin == Currency {
-			currencyRate = coin.Estimate * 0.95
+			currencyRate = coin.Estimate
 		}
 	}
 	return currencyRate
 }
 
-func SubmitLending(apy, balance float64) {
-	body, _ := json.Marshal(LendingOffer{Coin: Currency, Size: balance, Rate: apy})
+func SubmitLending(apy, balance float64) string {
+	submitApy := apy * 0.8
+	body, _ := json.Marshal(LendingOffer{Coin: Currency, Size: balance, Rate: submitApy})
 	client := http.Client{}
 	path := "/spot_margin/offers"
 	req := FtxClient(path, "POST", body)
 	res, err := client.Do(req)
 	if err != nil {
-		log.Printf("Submit lending offer failed,err: %s", err)
-		return
+		return fmt.Sprintf("Submit lending offer failed,err: %s", err)
 	}
 	defer res.Body.Close()
 	r, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Printf("Submit lending offer failed,err: %s", err)
-		return
+		return fmt.Sprintf("Submit lending offer failed,err: %s", err)
 	}
 	//fmt.Printf("%+v", string(r))
 
 	var lendResp LendingResponse
 	json.Unmarshal(r, &lendResp)
 	if lendResp.Success == false {
-		log.Printf("Submit lending offer failed,error: %s", lendResp.Error)
-		return
+		return fmt.Sprintf("Submit lending offer failed,error: %s", lendResp.Error)
 	}
 
-	log.Printf("Submit lending offer success, Currency: %s, Size: %f, APY: %f%%", Currency, balance, apy*24*365*100)
+	return fmt.Sprintf("Submit lending offer success, Currency: %s, Size: %f, Lending APY: %f%%, Estimate APY: %f%%,", Currency, balance, submitApy*24*365*100, apy*24*365*100)
 }
 
 func milliTimestamp() string {

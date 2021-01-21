@@ -114,23 +114,17 @@ func FtxClient(path string, method string, body []byte) *http.Request {
 }
 
 func GetBalance() (totalBalance float64) {
-	client := http.Client{}
 	path := "/wallet/balances"
 	req := FtxClient(path, "GET", nil)
-	res, err := client.Do(req)
-	if err != nil {
-		log.Printf("Get account balance failed,err: %s", err)
-		return
-	}
-	defer res.Body.Close()
-	r, err := ioutil.ReadAll(res.Body)
+
+	jsonByte, err := GetResponseJson(req)
 	if err != nil {
 		log.Printf("Get account balance failed,err: %s", err)
 		return
 	}
 
 	var balance Balance
-	json.Unmarshal(r, &balance)
+	json.Unmarshal(jsonByte, &balance)
 	for _, coin := range balance.Result {
 		if coin.Coin == Currency {
 			totalBalance = coin.Total
@@ -140,23 +134,17 @@ func GetBalance() (totalBalance float64) {
 }
 
 func GetLendingRates() (currencyRate float64) {
-	client := http.Client{}
 	path := "/spot_margin/lending_rates"
 	req := FtxClient(path, "GET", nil)
-	res, err := client.Do(req)
-	if err != nil {
-		log.Printf("Get Lending Rates failed,err: %s", err)
-		return
-	}
-	defer res.Body.Close()
-	r, err := ioutil.ReadAll(res.Body)
+
+	jsonByte, err := GetResponseJson(req)
 	if err != nil {
 		log.Printf("Get Lending Rates failed,err: %s", err)
 		return
 	}
 
 	var lend LendingRate
-	json.Unmarshal(r, &lend)
+	json.Unmarshal(jsonByte, &lend)
 	for _, coin := range lend.Result {
 		if coin.Coin == Currency {
 			currencyRate = coin.Estimate
@@ -167,22 +155,17 @@ func GetLendingRates() (currencyRate float64) {
 
 func SubmitLending(apy, balance float64) string {
 	submitApy := apy * 0.8
-	body, _ := json.Marshal(LendingOffer{Coin: Currency, Size: balance, Rate: submitApy})
-	client := http.Client{}
 	path := "/spot_margin/offers"
+	body, _ := json.Marshal(LendingOffer{Coin: Currency, Size: balance, Rate: submitApy})
+
 	req := FtxClient(path, "POST", body)
-	res, err := client.Do(req)
-	if err != nil {
-		return fmt.Sprintf("Submit lending offer failed,err: %s", err)
-	}
-	defer res.Body.Close()
-	r, err := ioutil.ReadAll(res.Body)
+	jsonByte, err := GetResponseJson(req)
 	if err != nil {
 		return fmt.Sprintf("Submit lending offer failed,err: %s", err)
 	}
 
 	var lendResp LendingResponse
-	json.Unmarshal(r, &lendResp)
+	json.Unmarshal(jsonByte, &lendResp)
 	if lendResp.Success == false {
 		return fmt.Sprintf("Submit lending offer failed,error: %s", lendResp.Error)
 	}
@@ -192,6 +175,22 @@ func SubmitLending(apy, balance float64) string {
 
 func milliTimestamp() string {
 	return strconv.FormatInt(time.Now().UTC().Unix()*1000, 10)
+}
+
+func GetResponseJson(req *http.Request) (jsonByte []byte, err error) {
+	client := http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	jsonByte, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 func SetLogFile() {

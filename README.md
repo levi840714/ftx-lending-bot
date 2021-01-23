@@ -1,7 +1,7 @@
 # FTX_LENDING_BOT
 ***FTX automatically follow the next hour lending rate bot***
 
-Please copy the **.env.example** to **.env** file and set the config data 
+Please copy the `.env.example` to `.env` file and set the config data 
 
 > **SUB_ACCOUNT** your ftx sub account name
 

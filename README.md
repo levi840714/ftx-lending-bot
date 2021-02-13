@@ -1,4 +1,4 @@
-# FTX_LENDING_BOT
+# ftx-lending-bot
 ***FTX automatically follow the next hour lending rate bot***
 
 Please copy the `.env.example` to `.env` file and set the config data 

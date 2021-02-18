@@ -154,7 +154,8 @@ func GetLendingRates() (currencyRate float64) {
 }
 
 func SubmitLending(apy, balance float64) string {
-	submitApy := apy * 0.8
+	// ensure submit rate can lending success
+	submitApy := apy * 0.6
 	path := "/spot_margin/offers"
 	body, _ := json.Marshal(LendingOffer{Coin: Currency, Size: balance, Rate: submitApy})
 

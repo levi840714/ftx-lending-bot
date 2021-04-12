@@ -10,3 +10,13 @@ Please copy the `.env.example` to `.env` file and set the config data
 > **API_KEY** your ftx api key
 
 > **SECRET_KEY** your ftx secret key
+
+# Run in docker
+
+```
+docker build -t "ftxlending:latest" .
+
+docker run --name ftxLending -d ftxlending:latest
+
+docker logs -f ftxLending
+```
